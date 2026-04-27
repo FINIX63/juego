@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego PRO</title>
+
+<style>
+body{
+margin:0;
+font-family:sans-serif;
+background:linear-gradient(#0f2027,#203a43,#2c5364);
+color:white;
+text-align:center;
+}
+
+.contenedor{
+margin:20px auto;
+padding:20px;
+width:90%;
+max-width:700px;
+background:rgba(0,0,0,0.6);
+border-radius:15px;
+animation:fade .5s;
+}
+
+@keyframes fade{
+from{opacity:0;transform:translateY(20px)}
+to{opacity:1;transform:translateY(0)}
+}
+
+button{
+padding:12px;
+margin:8px;
+border:none;
+border-radius:10px;
+background:#00c6ff;
+color:white;
+cursor:pointer;
+transition:.3s;
+}
+
+button:hover{background:#0072ff; transform:scale(1.05)}
+
+input{
+padding:10px;
+border-radius:10px;
+border:none;
+margin:10px;
+width:70%;
+}
+
+.oculto{display:none}
+
+/* BARRA VIDA */
+#vidaBar{
+width:90%;
+height:20px;
+background:#333;
+border-radius:20px;
+margin:auto;
+overflow:hidden;
+}
+
+#vida{
+height:100%;
+width:100%;
+background:linear-gradient(90deg,lime,green);
+transition:.5s;
+}
+
+/* FINAL */
+#pantallaFinal{
+position:fixed;
+top:0;left:0;
+width:100%;
+height:100%;
+background:black;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+font-size:30px;
+z-index:999;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎮 Aprende Programación PRO</h1>
+
+<div id="login" class="contenedor">
+<input id="nombre" placeholder="Nombre"><br>
+<input id="correo" placeholder="Correo"><br>
+<button onclick="registrar()">Entrar</button>
+</div>
+
+<div id="especialidad" class="contenedor oculto">
+<h2>Elige especialidad</h2>
+<button onclick="elegir('web')">🌐 Web</button>
+<button onclick="elegir('ciber')">🛡 Ciberseguridad</button>
+<button onclick="elegir('bd')">🗄 Base de Datos</button>
+</div>
+
+<div id="juego" class="contenedor oculto">
+<p id="info"></p>
+
+<div id="vidaBar">
+<div id="vida"></div>
+</div>
+
+<h2 id="pregunta"></h2>
+<div id="opciones"></div>
+
+<button onclick="anterior()">⬅ Anterior</button>
+<button onclick="reiniciar()">🔄 Reiniciar</button>
+</div>
+
+<div id="pantallaFinal" class="oculto">
+<h1 id="mensajeFinal"></h1>
+<button onclick="reiniciar()">Volver a jugar</button>
+</div>
+
+<script>
+
+// ===== VARIABLES =====
+let usuario,campo;
+let vidas=100,xp=0,nivel=0,pIndex=0;
+let preguntas=[];
+
+// ===== LOGIN =====
+function registrar(){
+usuario={
+nombre:nombre.value,
+correo:correo.value
+};
+
+if(!usuario.nombre||!usuario.correo) return alert("Completa datos");
+
+let db=JSON.parse(localStorage.getItem("users"))||{};
+if(db[usuario.correo]){
+let u=db[usuario.correo];
+nivel=u.nivel||0;
+xp=u.xp||0;
+campo=u.campo||null;
+}
+
+login.classList.add("oculto");
+especialidad.classList.remove("oculto");
+}
+
+// ===== ESPECIALIDAD =====
+function elegir(c){
+campo=c;
+especialidad.classList.add("oculto");
+juego.classList.remove("oculto");
+
+generarPreguntas();
+actualizar();
+}
+
+// ===== BASE REAL DE PREGUNTAS =====
+const banco={
+web:[
+["¿Qué etiqueta crea un enlace?",["<a>","<p>","<div>","<link>"],0],
+["¿Qué propiedad cambia color texto?",["color","font","text","bg"],0],
+["¿Qué hace display:flex?",["Organiza elementos","Cambia color","Crea BD","Nada"],0],
+["¿Qué es DOM?",["Estructura HTML en JS","Servidor","BD","Nada"],0],
+["¿Evento click?",["onclick","hover","css","html"],0]
+],
+ciber:[
+["¿Qué es phishing?",["Robo de datos","Virus","Firewall","BD"],0],
+["¿Qué hace un firewall?",["Filtra tráfico","Guarda datos","Diseña web","Nada"],0],
+["¿HTTPS significa?",["Conexión segura","Error web","Servidor","Nada"],0],
+["¿Qué es malware?",["Software malicioso","Diseño","HTML","BD"],0],
+["¿Ataque XSS?",["Inyección script","Base datos","Loop","Nada"],0]
+],
+bd:[
+["¿SELECT sirve para?",["Consultar datos","Borrar","Insertar","Nada"],0],
+["¿INSERT hace?",["Agregar datos","Eliminar","Leer","Nada"],0],
+["¿DELETE hace?",["Eliminar","Leer","Insertar","Nada"],0],
+["¿Qué es tabla?",["Estructura datos","HTML","Loop","Nada"],0],
+["¿Primary key?",["Identificador único","Color","Loop","Nada"],0]
+]
+};
+
+// ===== GENERAR =====
+function generarPreguntas(){
+preguntas=[];
+let base=banco[campo];
+
+for(let i=0;i<10;i++){
+let q=base[Math.floor(Math.random()*base.length)];
+preguntas.push({p:q[0],o:[...q[1]],c:q[2]});
+}
+pIndex=0;
+}
+
+// ===== MEZCLA =====
+function mezclar(p){
+let arr=p.o.map((t,i)=>({t,ok:i===p.c}));
+for(let i=arr.length-1;i>0;i--){
+let j=Math.floor(Math.random()*(i+1));
+[arr[i],arr[j]]=[arr[j],arr[i]];
+}
+return arr;
+}
+
+// ===== UI =====
+function actualizar(){
+info.innerText=`Nivel ${nivel+1} | XP ${xp} | ${campo}`;
+
+vida.style.width=vidas+"%";
+if(vidas<30) vida.style.background="red";
+else if(vidas<60) vida.style.background="orange";
+
+let p=preguntas[pIndex];
+pregunta.innerText=p.p;
+
+opciones.innerHTML="";
+mezclar(p).forEach(o=>{
+let b=document.createElement("button");
+b.innerText=o.t;
+b.onclick=()=>responder(o.ok);
+opciones.appendChild(b);
+});
+}
+
+// ===== RESPUESTA =====
+function responder(ok){
+if(ok){
+xp+=10;
+pIndex++;
+
+if(pIndex>=preguntas.length){
+nivel++;
+
+if(nivel>=10){
+final("🏆 GANASTE TODO");
+return;
+}
+generarPreguntas();
+}
+}else{
+vidas-=20;
+if(vidas<=0){
+final("💀 GAME OVER");
+return;
+}
+}
+
+guardar();
+actualizar();
+}
+
+// ===== ATRAS =====
+function anterior(){
+if(pIndex>0){
+pIndex--;
+actualizar();
+}
+}
+
+// ===== GUARDAR =====
+function guardar(){
+let db=JSON.parse(localStorage.getItem("users"))||{};
+db[usuario.correo]={nivel,xp,campo};
+localStorage.setItem("users",JSON.stringify(db));
+}
+
+// ===== FINAL =====
+function final(msg){
+mensajeFinal.innerText=msg;
+pantallaFinal.classList.remove("oculto");
+juego.classList.add("oculto");
+}
+
+// ===== RESET =====
+function reiniciar(){
+vidas=100;
+xp=0;
+nivel=0;
+pantallaFinal.classList.add("oculto");
+juego.classList.remove("oculto");
+generarPreguntas();
+actualizar();
+}
+
+</script>
+
+</body>
+</html>
